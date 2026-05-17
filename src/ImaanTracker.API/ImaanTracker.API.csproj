@@ -16,6 +16,6 @@
  
   <ItemGroup>
     <ProjectReference Include="..\ImaanTracker.Core\ImaanTracker.Core.csproj" />
-    <ProjectReference Include="..\ImaanTracker.Infrastructure\ImaanTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\ImaanTracker.Infrastructure\Imaantracker.infrastructure.csproj" />
   </ItemGroup>
 </Project>
