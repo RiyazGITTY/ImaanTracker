@@ -76,4 +76,61 @@ public class HealthController : ControllerBase
             });
         }
     }
+
+    [HttpPost("db/create-app-tables")]
+    public async Task<IActionResult> CreateAppTables()
+    {
+        try
+        {
+            var connection = _db.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            await using (var checkCommand = connection.CreateCommand())
+            {
+                checkCommand.CommandText = """
+                    select exists (
+                        select 1
+                        from information_schema.tables
+                        where table_schema = 'public'
+                          and table_name = 'AspNetUsers'
+                    );
+                    """;
+
+                var exists = (bool)(await checkCommand.ExecuteScalarAsync() ?? false);
+                if (exists)
+                {
+                    await connection.CloseAsync();
+                    return Ok(new
+                    {
+                        Created = false,
+                        Message = "Application tables already exist"
+                    });
+                }
+            }
+
+            var script = _db.Database.GenerateCreateScript();
+            await using (var createCommand = connection.CreateCommand())
+            {
+                createCommand.CommandText = script;
+                await createCommand.ExecuteNonQueryAsync();
+            }
+
+            await connection.CloseAsync();
+
+            return Ok(new
+            {
+                Created = true,
+                Message = "Application tables created"
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Application table creation failed");
+            return StatusCode(500, new
+            {
+                Created = false,
+                Error = ex.Message
+            });
+        }
+    }
 }
