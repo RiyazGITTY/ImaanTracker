@@ -24,25 +24,29 @@ If Supabase gives a password placeholder like `[YOUR-PASSWORD]`, replace it with
 2. Go to <https://render.com>.
 3. Create a new Web Service.
 4. Connect your GitHub repo.
-5. Set root directory to:
+5. Set runtime:
 
 ```text
-src
+Docker
 ```
 
-6. Set build command:
+6. Keep root directory empty.
+
+7. Set Dockerfile path:
 
 ```text
-dotnet publish ImaanTracker.API/ImaanTracker.API.csproj -c Release -o out
+Dockerfile
 ```
 
-7. Set start command:
+8. Do not use the old Native Runtime build/start commands. Docker builds the API from the Dockerfile.
+
+Old Native Runtime commands will fail if Render selects Node:
 
 ```text
-dotnet out/ImaanTracker.API.dll
+bash: line 1: dotnet: command not found
 ```
 
-8. Add environment variables:
+9. Add environment variables:
 
 ```text
 ASPNETCORE_ENVIRONMENT=Production
@@ -52,8 +56,8 @@ Jwt__Issuer=ImaanTrackerAPI
 Jwt__Audience=ImaanTrackerMobile
 ```
 
-9. Deploy.
-10. Open:
+10. Deploy.
+11. Open:
 
 ```text
 https://YOUR-RENDER-SERVICE.onrender.com/swagger/index.html
