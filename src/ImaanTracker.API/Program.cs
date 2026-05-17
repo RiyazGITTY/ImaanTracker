@@ -16,10 +16,15 @@ if (!string.IsNullOrWhiteSpace(port))
 var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
 var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
 var connectionString = NormalizePostgresUrl(databaseUrl) ?? defaultConnection;
+var usePostgres = IsPostgres(connectionString);
+
+Console.WriteLine(usePostgres
+    ? "Database provider: PostgreSQL"
+    : "Database provider: SQL Server");
 
 builder.Services.AddDbContext<AppDbContext>(opt =>
 {
-    if (IsPostgres(connectionString))
+    if (usePostgres)
         opt.UseNpgsql(connectionString);
     else
         opt.UseSqlServer(connectionString);
@@ -108,12 +113,22 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowMobile");
 app.UseAuthentication();
 app.UseAuthorization();
+app.MapGet("/", () => Results.Ok(new { Name = "Imaan Tracker API", Status = "Running" }));
 app.MapControllers();
 
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    await db.Database.EnsureCreatedAsync();
+    try
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.EnsureCreatedAsync();
+        Console.WriteLine("Database schema check completed.");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine("Database schema check failed. The API will still start, but database endpoints will fail until the connection is fixed.");
+        Console.Error.WriteLine(ex);
+    }
 }
 
 app.Run();
