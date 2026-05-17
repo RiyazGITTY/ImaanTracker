@@ -16,61 +16,80 @@ public class AuthController : ControllerBase
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IConfiguration _config;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IConfiguration config)
+        IConfiguration config,
+        ILogger<AuthController> logger)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _config = config;
+        _logger = logger;
     }
 
     /// <summary>Register a new user</summary>
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        var user = new ApplicationUser
+        try
         {
-            UserName = dto.Email,
-            Email = dto.Email,
-            FullName = dto.FullName,
-            City = dto.City,
-            Country = dto.Country,
-            Latitude = dto.Latitude,
-            Longitude = dto.Longitude,
-            CalculationMethod = dto.CalculationMethod,
-            Madhab = dto.Madhab
-        };
+            var user = new ApplicationUser
+            {
+                UserName = dto.Email,
+                Email = dto.Email,
+                FullName = dto.FullName,
+                City = dto.City,
+                Country = dto.Country,
+                Latitude = dto.Latitude,
+                Longitude = dto.Longitude,
+                CalculationMethod = dto.CalculationMethod,
+                Madhab = dto.Madhab
+            };
 
-        var result = await _userManager.CreateAsync(user, dto.Password);
-        if (!result.Succeeded)
-            return BadRequest(result.Errors.Select(e => e.Description));
+            var result = await _userManager.CreateAsync(user, dto.Password);
+            if (!result.Succeeded)
+                return BadRequest(result.Errors.Select(e => e.Description));
 
-        return Ok(new { Message = "Registration successful. Please log in." });
+            return Ok(new { Message = "Registration successful. Please log in." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Registration failed for {Email}", dto.Email);
+            return Problem("Registration failed. Check the Render logs for the exact database error.");
+        }
     }
 
     /// <summary>Login and get JWT token</summary>
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var user = await _userManager.FindByEmailAsync(dto.Email);
-        if (user is null) return Unauthorized("Invalid credentials");
+        try
+        {
+            var user = await _userManager.FindByEmailAsync(dto.Email);
+            if (user is null) return Unauthorized("Invalid credentials");
 
-        var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
-        if (!result.Succeeded) return Unauthorized("Invalid credentials");
+            var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
+            if (!result.Succeeded) return Unauthorized("Invalid credentials");
 
-        var token = GenerateJwt(user);
-        var expiry = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:ExpiryInDays"] ?? "30"));
+            var token = GenerateJwt(user);
+            var expiry = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:ExpiryInDays"] ?? "30"));
 
-        return Ok(new AuthResponseDto(
-            Token: token,
-            UserId: user.Id,
-            FullName: user.FullName,
-            Email: user.Email!,
-            ExpiresAt: expiry
-        ));
+            return Ok(new AuthResponseDto(
+                Token: token,
+                UserId: user.Id,
+                FullName: user.FullName,
+                Email: user.Email!,
+                ExpiresAt: expiry
+            ));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Login failed for {Email}", dto.Email);
+            return Problem("Login failed. Check the Render logs for the exact database or JWT error.");
+        }
     }
 
     private string GenerateJwt(ApplicationUser user)
