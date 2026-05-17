@@ -1,0 +1,6 @@
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/*.lscache
+**/*.csproj.SdkResolver.*.proj.Backup.tmp

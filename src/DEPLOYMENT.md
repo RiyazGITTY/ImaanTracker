@@ -30,7 +30,11 @@ If Supabase gives a password placeholder like `[YOUR-PASSWORD]`, replace it with
 Docker
 ```
 
-6. Keep root directory empty.
+6. Recommended root directory:
+
+```text
+src
+```
 
 7. Set Dockerfile path:
 
