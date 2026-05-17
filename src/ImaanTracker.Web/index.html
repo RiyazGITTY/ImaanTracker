@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Imaan Tracker</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="brand">
+      <p class="eyebrow">Imaan Tracker</p>
+      <h1>Track today's five prayers.</h1>
+      <p class="subtle">Sign up, login, and mark each prayer complete. Simple MVP, ready to grow later.</p>
+    </section>
+
+    <section id="authPanel" class="panel">
+      <div class="tabs" role="tablist">
+        <button id="loginTab" class="tab active" type="button">Login</button>
+        <button id="signupTab" class="tab" type="button">Sign up</button>
+      </div>
+
+      <form id="loginForm" class="form">
+        <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
+        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">Login</button>
+      </form>
+
+      <form id="signupForm" class="form hidden">
+        <label>Full name<input id="signupName" autocomplete="name" required></label>
+        <label>Email<input id="signupEmail" type="email" autocomplete="email" required></label>
+        <label>Password<input id="signupPassword" type="password" autocomplete="new-password" required minlength="6"></label>
+        <div class="split">
+          <label>City<input id="signupCity" required></label>
+          <label>Country<input id="signupCountry" required></label>
+        </div>
+        <button class="primary" type="submit">Create account</button>
+      </form>
+
+      <p id="authMessage" class="message"></p>
+    </section>
+
+    <section id="prayerPanel" class="panel hidden">
+      <div class="topbar">
+        <div>
+          <p class="eyebrow">Today</p>
+          <h2>Prayer checklist</h2>
+        </div>
+        <button id="logoutButton" class="ghost" type="button">Logout</button>
+      </div>
+
+      <div class="progress">
+        <div>
+          <strong id="statusText">0 of 5 complete</strong>
+          <span id="completeText">Keep going.</span>
+        </div>
+        <div id="progressCircle">0%</div>
+      </div>
+
+      <div id="prayerList" class="prayer-list"></div>
+      <p id="prayerMessage" class="message"></p>
+    </section>
+  </main>
+
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
