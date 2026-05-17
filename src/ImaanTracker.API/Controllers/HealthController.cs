@@ -22,12 +22,20 @@ public class HealthController : ControllerBase
     {
         try
         {
-            var canConnect = await _db.Database.CanConnectAsync();
+            var connection = _db.Database.GetDbConnection();
+            await connection.OpenAsync();
+
+            await using var command = connection.CreateCommand();
+            command.CommandText = "select 1";
+            var result = await command.ExecuteScalarAsync();
+            await connection.CloseAsync();
+
             return Ok(new
             {
                 Provider = _db.Database.ProviderName,
-                CanConnect = canConnect,
-                Message = canConnect ? "Database connection OK" : "Database connection failed"
+                CanConnect = true,
+                Result = result,
+                Message = "Database connection OK"
             });
         }
         catch (Exception ex)
