@@ -111,7 +111,7 @@ public class PrayerChecklistPage : ContentPage
                                 },
                                 new Label
                                 {
-                                    Text = prayer.Completed ? "Saved in database" : "Pending",
+                                    Text = prayer.Completed ? "Alhamdulillah" : "Pending",
                                     FontSize = 13,
                                     TextColor = Color.FromArgb("#64748B")
                                 }

@@ -7,7 +7,9 @@ public class SignUpPage : ContentPage
     private readonly ApiService _api;
     private readonly Entry _nameEntry = new() { Placeholder = "Full name" };
     private readonly Entry _emailEntry = new() { Placeholder = "Email", Keyboard = Keyboard.Email };
+    private readonly Entry _mobileEntry = new() { Placeholder = "Mobile number", Keyboard = Keyboard.Telephone };
     private readonly Entry _passwordEntry = new() { Placeholder = "Password", IsPassword = true };
+    private readonly Entry _confirmPasswordEntry = new() { Placeholder = "Confirm password", IsPassword = true };
     private readonly Entry _cityEntry = new() { Placeholder = "City" };
     private readonly Entry _countryEntry = new() { Placeholder = "Country" };
     private readonly Label _messageLabel = new();
@@ -41,7 +43,9 @@ public class SignUpPage : ContentPage
                     },
                     Field(_nameEntry),
                     Field(_emailEntry),
+                    Field(_mobileEntry),
                     Field(_passwordEntry),
+                    Field(_confirmPasswordEntry),
                     Field(_cityEntry),
                     Field(_countryEntry),
                     _messageLabel,
@@ -59,10 +63,29 @@ public class SignUpPage : ContentPage
 
         try
         {
+            if (string.IsNullOrWhiteSpace(_nameEntry.Text)
+                || string.IsNullOrWhiteSpace(_emailEntry.Text)
+                || string.IsNullOrWhiteSpace(_mobileEntry.Text)
+                || string.IsNullOrWhiteSpace(_passwordEntry.Text)
+                || string.IsNullOrWhiteSpace(_confirmPasswordEntry.Text)
+                || string.IsNullOrWhiteSpace(_cityEntry.Text)
+                || string.IsNullOrWhiteSpace(_countryEntry.Text))
+            {
+                _messageLabel.Text = "Please enter all details.";
+                return;
+            }
+
+            if (_passwordEntry.Text != _confirmPasswordEntry.Text)
+            {
+                _messageLabel.Text = "Password and confirm password must match.";
+                return;
+            }
+
             var request = new RegisterRequest(
                 _nameEntry.Text?.Trim() ?? "",
                 _emailEntry.Text?.Trim() ?? "",
                 _passwordEntry.Text ?? "",
+                _mobileEntry.Text?.Trim() ?? "",
                 _cityEntry.Text?.Trim() ?? "",
                 _countryEntry.Text?.Trim() ?? "",
                 0,
@@ -76,7 +99,14 @@ public class SignUpPage : ContentPage
             }
 
             _messageLabel.TextColor = Color.FromArgb("#0F766E");
-            _messageLabel.Text = "Account created. You can login now.";
+            _messageLabel.Text = "Successfully your account created.";
+            _nameEntry.Text = "";
+            _emailEntry.Text = "";
+            _mobileEntry.Text = "";
+            _passwordEntry.Text = "";
+            _confirmPasswordEntry.Text = "";
+            _cityEntry.Text = "";
+            _countryEntry.Text = "";
             await Task.Delay(700);
             await Navigation.PopAsync();
         }

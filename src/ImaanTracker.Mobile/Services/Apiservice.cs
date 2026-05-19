@@ -46,7 +46,7 @@ public class ApiService
 public record AuthResponse(string Token, string UserId, string FullName, string Email,
     DateTime ExpiresAt);
 
-public record RegisterRequest(string FullName, string Email, string Password,
+public record RegisterRequest(string FullName, string Email, string Password, string MobileNumber,
     string City, string Country, double Latitude, double Longitude);
 
 public record DailyLogResponse(int Id, DateTime LogDate, int CompletedCount,

@@ -36,10 +36,21 @@ public class AuthController : ControllerBase
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(dto.FullName)
+                || string.IsNullOrWhiteSpace(dto.Email)
+                || string.IsNullOrWhiteSpace(dto.Password)
+                || string.IsNullOrWhiteSpace(dto.MobileNumber)
+                || string.IsNullOrWhiteSpace(dto.City)
+                || string.IsNullOrWhiteSpace(dto.Country))
+            {
+                return BadRequest(new[] { "Please enter all details." });
+            }
+
             var user = new ApplicationUser
             {
                 UserName = dto.Email,
                 Email = dto.Email,
+                PhoneNumber = dto.MobileNumber,
                 FullName = dto.FullName,
                 City = dto.City,
                 Country = dto.Country,

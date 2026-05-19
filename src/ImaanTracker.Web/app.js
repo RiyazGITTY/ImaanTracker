@@ -3,7 +3,8 @@ const API_BASE = localStorage.getItem("imaan_api_base")
   || "http://localhost:5263/api";
 
 const state = {
-  token: localStorage.getItem("imaan_token") || ""
+  token: localStorage.getItem("imaan_token") || "",
+  userName: localStorage.getItem("imaan_user_name") || ""
 };
 
 const authPanel = document.querySelector("#authPanel");
@@ -19,6 +20,13 @@ const statusText = document.querySelector("#statusText");
 const completeText = document.querySelector("#completeText");
 const progressCircle = document.querySelector("#progressCircle");
 const logoutButton = document.querySelector("#logoutButton");
+const signupButton = document.querySelector("#signupButton");
+const salaamText = document.querySelector("#salaamText");
+const toast = document.querySelector("#toast");
+
+document.querySelectorAll("[data-toggle-password]").forEach(button => {
+  button.addEventListener("click", () => togglePassword(button));
+});
 
 loginTab.addEventListener("click", () => showAuthTab("login"));
 signupTab.addEventListener("click", () => showAuthTab("signup"));
@@ -44,10 +52,20 @@ async function signup(event) {
   event.preventDefault();
   setAuthMessage("");
 
+  if (!signupForm.reportValidity()) return;
+
+  const password = value("#signupPassword");
+  const confirmPassword = value("#signupConfirmPassword");
+  if (password !== confirmPassword) {
+    setAuthMessage("Password and confirm password must match.");
+    return;
+  }
+
   const body = {
     fullName: value("#signupName"),
     email: value("#signupEmail"),
-    password: value("#signupPassword"),
+    password,
+    mobileNumber: value("#signupMobile"),
     city: value("#signupCity"),
     country: value("#signupCountry"),
     latitude: 0,
@@ -56,15 +74,23 @@ async function signup(event) {
     madhab: "Hanafi"
   };
 
-  const response = await request("/Auth/register", { method: "POST", body });
-  if (!response.ok) {
-    setAuthMessage(await errorText(response) || "Could not create account.");
-    return;
+  setSignupLoading(true);
+  let response;
+  try {
+    response = await request("/Auth/register", { method: "POST", body });
+    if (!response.ok) {
+      setAuthMessage(await errorText(response) || "Could not create account.");
+      return;
+    }
+  } finally {
+    setSignupLoading(false);
   }
 
-  setAuthMessage("Account created. Login now.", true);
+  signupForm.reset();
   showAuthTab("login");
   document.querySelector("#loginEmail").value = body.email;
+  setAuthMessage("Successfully your account created.", true);
+  showToast("Successfully your account created.");
 }
 
 async function login(event) {
@@ -86,7 +112,9 @@ async function login(event) {
 
   const data = await response.json();
   state.token = data.token;
+  state.userName = data.fullName || value("#loginEmail");
   localStorage.setItem("imaan_token", state.token);
+  localStorage.setItem("imaan_user_name", state.userName);
   showPrayerPanel();
   await loadToday();
 }
@@ -141,7 +169,7 @@ function renderToday(today) {
 
     const status = document.createElement("span");
     status.className = "prayer-state";
-    status.textContent = prayer.completed ? "Saved in database" : "Pending";
+    status.textContent = prayer.completed ? "Alhamdulillah" : "Pending";
 
     info.append(name, status);
 
@@ -159,11 +187,14 @@ function renderToday(today) {
 function showPrayerPanel() {
   authPanel.classList.add("hidden");
   prayerPanel.classList.remove("hidden");
+  updateSalaam();
 }
 
 function logout() {
   state.token = "";
+  state.userName = "";
   localStorage.removeItem("imaan_token");
+  localStorage.removeItem("imaan_user_name");
   prayerPanel.classList.add("hidden");
   authPanel.classList.remove("hidden");
 }
@@ -202,4 +233,40 @@ function setAuthMessage(text, ok = false) {
 
 function setPrayerMessage(text) {
   prayerMessage.textContent = text;
+}
+
+function togglePassword(button) {
+  const input = document.querySelector(button.dataset.togglePassword);
+  const isPassword = input.type === "password";
+  input.type = isPassword ? "text" : "password";
+  button.classList.toggle("active", isPassword);
+  button.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+}
+
+function setSignupLoading(isLoading) {
+  signupButton.disabled = isLoading;
+  signupButton.classList.toggle("loading", isLoading);
+}
+
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.add("show");
+  window.clearTimeout(showToast.timeout);
+  showToast.timeout = window.setTimeout(() => toast.classList.remove("show"), 3200);
+}
+
+function updateSalaam() {
+  const name = state.userName || readJwtName(state.token) || "Friend";
+  salaamText.textContent = `Assalamu Alaikum ${name},`;
+}
+
+function readJwtName(token) {
+  try {
+    const encoded = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = encoded.padEnd(encoded.length + (4 - encoded.length % 4) % 4, "=");
+    const payload = JSON.parse(atob(padded));
+    return payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"] || payload.name || "";
+  } catch {
+    return "";
+  }
 }

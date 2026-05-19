@@ -123,6 +123,47 @@ input:focus {
   border-color: #0f766e;
 }
 
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 46px;
+}
+
+.eye-button {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  width: 34px;
+  height: 34px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #50645f;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.eye-button:hover,
+.eye-button.active {
+  background: #edf7f4;
+  color: #0f766e;
+}
+
+.eye-button svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
 .split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -134,6 +175,10 @@ input:focus {
   padding: 14px 16px;
   font-weight: 800;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
 }
 
 .primary:disabled,
@@ -153,6 +198,26 @@ input:focus {
   color: #0f766e;
 }
 
+.loader {
+  display: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.primary.loading .loader {
+  display: inline-block;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .hidden {
   display: none !important;
 }
@@ -164,6 +229,13 @@ input:focus {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.salaam {
+  margin: 0 0 6px;
+  color: #23423c;
+  font-size: 18px;
+  font-weight: 800;
 }
 
 .progress {
@@ -235,6 +307,28 @@ input:focus {
 .prayer.completed button {
   background: #dcfce7;
   color: #166534;
+}
+
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  max-width: min(360px, calc(100vw - 44px));
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #0f766e;
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 18px 45px rgba(15, 118, 110, 0.28);
+  opacity: 0;
+  transform: translateY(16px);
+  pointer-events: none;
+  transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 @media (max-width: 760px) {

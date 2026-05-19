@@ -11,7 +11,7 @@
     <section class="brand">
       <p class="eyebrow">Imaan Tracker</p>
       <h1>Track today's five prayers.</h1>
-      <p class="subtle">Sign up, login, and mark each prayer complete. Simple MVP, ready to grow later.</p>
+      <p class="subtle">Indeed, prayer prohibits immorality and wrongdoing, and the remembrance of Allah is greater. Quran 29:45</p>
     </section>
 
     <section id="authPanel" class="panel">
@@ -22,19 +22,45 @@
 
       <form id="loginForm" class="form">
         <label>Email<input id="loginEmail" type="email" autocomplete="email" required></label>
-        <label>Password<input id="loginPassword" type="password" autocomplete="current-password" required></label>
+        <label>Password
+          <span class="password-field">
+            <input id="loginPassword" type="password" autocomplete="current-password" required>
+            <button class="eye-button" type="button" aria-label="Show password" data-toggle-password="#loginPassword">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+        </label>
         <button class="primary" type="submit">Login</button>
       </form>
 
       <form id="signupForm" class="form hidden">
         <label>Full name<input id="signupName" autocomplete="name" required></label>
         <label>Email<input id="signupEmail" type="email" autocomplete="email" required></label>
-        <label>Password<input id="signupPassword" type="password" autocomplete="new-password" required minlength="6"></label>
+        <label>Mobile number<input id="signupMobile" type="tel" autocomplete="tel" required></label>
+        <label>Password
+          <span class="password-field">
+            <input id="signupPassword" type="password" autocomplete="new-password" required minlength="6">
+            <button class="eye-button" type="button" aria-label="Show password" data-toggle-password="#signupPassword">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+        </label>
+        <label>Confirm password
+          <span class="password-field">
+            <input id="signupConfirmPassword" type="password" autocomplete="new-password" required minlength="6">
+            <button class="eye-button" type="button" aria-label="Show confirm password" data-toggle-password="#signupConfirmPassword">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+        </label>
         <div class="split">
           <label>City<input id="signupCity" required></label>
           <label>Country<input id="signupCountry" required></label>
         </div>
-        <button class="primary" type="submit">Create account</button>
+        <button id="signupButton" class="primary" type="submit">
+          <span class="button-text">Create account</span>
+          <span class="loader" aria-hidden="true"></span>
+        </button>
       </form>
 
       <p id="authMessage" class="message"></p>
@@ -44,6 +70,7 @@
       <div class="topbar">
         <div>
           <p class="eyebrow">Today</p>
+          <p id="salaamText" class="salaam">Assalamu Alaikum,</p>
           <h2>Prayer checklist</h2>
         </div>
         <button id="logoutButton" class="ghost" type="button">Logout</button>
@@ -64,5 +91,6 @@
 
   <script src="./config.js"></script>
   <script src="./app.js"></script>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
