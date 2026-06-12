@@ -85,7 +85,8 @@ public class AuthController : ControllerBase
             var result = await _signInManager.CheckPasswordSignInAsync(user, dto.Password, false);
             if (!result.Succeeded) return Unauthorized("Invalid credentials");
 
-            var token = GenerateJwt(user);
+            var roles = await _userManager.GetRolesAsync(user);
+            var token = GenerateJwt(user, roles);
             var expiry = DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:ExpiryInDays"] ?? "30"));
 
             return Ok(new AuthResponseDto(
@@ -93,7 +94,9 @@ public class AuthController : ControllerBase
                 UserId: user.Id,
                 FullName: user.FullName,
                 Email: user.Email!,
-                ExpiresAt: expiry
+                ExpiresAt: expiry,
+                IsAdmin: roles.Contains("Admin"),
+                Roles: roles.ToArray()
             ));
         }
         catch (Exception ex)
@@ -103,17 +106,19 @@ public class AuthController : ControllerBase
         }
     }
 
-    private string GenerateJwt(ApplicationUser user)
+    private string GenerateJwt(ApplicationUser user, IEnumerable<string> roles)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.Name, user.FullName)
         };
+
+        claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
         var token = new JwtSecurityToken(
             issuer: _config["Jwt:Issuer"],

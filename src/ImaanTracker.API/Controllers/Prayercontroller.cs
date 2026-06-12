@@ -15,6 +15,14 @@ namespace ImaanTracker.API.Controllers;
 public class PrayerController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private static readonly (PrayerName Name, int Rakaat)[] DefaultPrayers =
+    [
+        (PrayerName.Fajr, 2),
+        (PrayerName.Dhuhr, 4),
+        (PrayerName.Asr, 4),
+        (PrayerName.Maghrib, 3),
+        (PrayerName.Isha, 4),
+    ];
 
     public PrayerController(AppDbContext db) => _db = db;
 
@@ -24,7 +32,72 @@ public class PrayerController : ControllerBase
     public async Task<IActionResult> GetToday()
     {
         var log = await GetOrCreateTodayLog(DateTime.UtcNow.Date);
-        return Ok(MapToDto(log));
+        return Ok(MapToDto(log, log.LogDate.Date));
+    }
+
+    [HttpGet("date")]
+    public async Task<IActionResult> GetByDate([FromQuery] DateTime date)
+    {
+        var requestedDate = date.Date;
+        var log = await _db.DailyPrayerLogs
+            .Include(l => l.PrayerEntries)
+            .FirstOrDefaultAsync(l => l.UserId == UserId && l.LogDate.Date == requestedDate);
+
+        return Ok(MapToDto(log, requestedDate));
+    }
+
+    [HttpGet("stats")]
+    public async Task<IActionResult> GetStats([FromQuery] string period = "week", [FromQuery] DateTime? date = null)
+    {
+        var anchor = (date ?? DateTime.UtcNow).Date;
+        var today = DateTime.UtcNow.Date;
+        var (start, end) = GetPeriod(period, anchor);
+        if (end > today) end = today;
+
+        if (start > end)
+            return Ok(MapStats(period, start, end, new List<DailyPrayerLog>()));
+
+        var logs = await _db.DailyPrayerLogs
+            .Include(l => l.PrayerEntries)
+            .Where(l => l.UserId == UserId && l.LogDate.Date >= start && l.LogDate.Date <= end)
+            .ToListAsync();
+
+        return Ok(MapStats(period, start, end, logs));
+    }
+
+    [HttpGet("calendar")]
+    public async Task<IActionResult> GetCalendar([FromQuery] int year, [FromQuery] int month)
+    {
+        if (year < 1 || month is < 1 or > 12)
+            return BadRequest("Enter a valid year and month.");
+
+        var start = new DateTime(year, month, 1);
+        var end = start.AddMonths(1).AddDays(-1);
+        var today = DateTime.UtcNow.Date;
+        var effectiveEnd = end > today ? today : end;
+
+        var logs = effectiveEnd < start
+            ? new List<DailyPrayerLog>()
+            : await _db.DailyPrayerLogs
+                .Include(l => l.PrayerEntries)
+                .Where(l => l.UserId == UserId && l.LogDate.Date >= start && l.LogDate.Date <= effectiveEnd)
+                .ToListAsync();
+
+        var byDate = logs.ToDictionary(l => l.LogDate.Date);
+        var days = Enumerable.Range(1, DateTime.DaysInMonth(year, month))
+            .Select(day =>
+            {
+                var current = new DateTime(year, month, day);
+                byDate.TryGetValue(current, out var log);
+                return MapDaySummary(current, log, current <= today);
+            });
+
+        return Ok(new
+        {
+            Year = year,
+            Month = month,
+            Days = days
+        });
     }
 
     [HttpPost("complete")]
@@ -43,7 +116,7 @@ public class PrayerController : ControllerBase
         log.PointsEarned = log.PrayerEntries.Count(e => e.Status == PrayerStatus.Completed);
 
         await _db.SaveChangesAsync();
-        return Ok(MapToDto(log));
+        return Ok(MapToDto(log, log.LogDate.Date));
     }
 
     private async Task<DailyPrayerLog> GetOrCreateTodayLog(DateTime date)
@@ -59,16 +132,7 @@ public class PrayerController : ControllerBase
         _db.DailyPrayerLogs.Add(log);
         await _db.SaveChangesAsync();
 
-        var defaultPrayers = new[]
-        {
-            (PrayerName.Fajr, 2),
-            (PrayerName.Dhuhr, 4),
-            (PrayerName.Asr, 4),
-            (PrayerName.Maghrib, 3),
-            (PrayerName.Isha, 4),
-        };
-
-        foreach (var (name, rakaat) in defaultPrayers)
+        foreach (var (name, rakaat) in DefaultPrayers)
         {
             _db.PrayerEntries.Add(new PrayerEntry
             {
@@ -87,20 +151,103 @@ public class PrayerController : ControllerBase
             .FirstAsync(l => l.Id == log.Id);
     }
 
-    private static object MapToDto(DailyPrayerLog log) => new
+    private static object MapToDto(DailyPrayerLog? log, DateTime date)
     {
-        log.Id,
-        log.LogDate,
-        CompletedCount = log.PrayerEntries.Count(e => e.Status == PrayerStatus.Completed),
-        TotalCount = log.PrayerEntries.Count,
-        IsComplete = log.IsPerfectDay,
-        Prayers = log.PrayerEntries.OrderBy(e => e.PrayerName).Select(e => new
+        var today = DateTime.UtcNow.Date;
+        var prayers = log is null
+            ? DefaultPrayers.Select(p => new
+            {
+                Id = 0,
+                PrayerName = p.Name.ToString(),
+                Status = date < today ? PrayerStatus.Missed.ToString() : PrayerStatus.Pending.ToString(),
+                Completed = false,
+                PrayedAt = (DateTime?)null
+            })
+            : log.PrayerEntries.OrderBy(e => e.PrayerName).Select(e => new
+            {
+                e.Id,
+                PrayerName = e.PrayerName.ToString(),
+                Status = EffectiveStatus(e, log.LogDate.Date).ToString(),
+                Completed = e.Status == PrayerStatus.Completed,
+                e.PrayedAt
+            });
+
+        var prayerList = prayers.ToList();
+
+        return new
         {
-            e.Id,
-            PrayerName = e.PrayerName.ToString(),
-            Status = e.Status.ToString(),
-            Completed = e.Status == PrayerStatus.Completed,
-            e.PrayedAt
-        })
-    };
+            Id = log?.Id ?? 0,
+            LogDate = date,
+            CompletedCount = prayerList.Count(e => e.Completed),
+            MissedCount = prayerList.Count(e => e.Status == PrayerStatus.Missed.ToString()),
+            TotalCount = prayerList.Count,
+            IsComplete = prayerList.Count > 0 && prayerList.All(e => e.Completed),
+            Prayers = prayerList
+        };
+    }
+
+    private static object MapStats(string period, DateTime start, DateTime end, List<DailyPrayerLog> logs)
+    {
+        var expected = start > end ? 0 : ((end - start).Days + 1) * DefaultPrayers.Length;
+        var completed = logs.Sum(l => l.PrayerEntries.Count(e => e.Status == PrayerStatus.Completed));
+        var missed = Math.Max(0, expected - completed);
+
+        return new
+        {
+            Period = period,
+            StartDate = start,
+            EndDate = end,
+            ExpectedCount = expected,
+            CompletedCount = completed,
+            MissedCount = missed,
+            Days = EachDay(start, end).Select(day =>
+            {
+                var log = logs.FirstOrDefault(l => l.LogDate.Date == day);
+                return MapDaySummary(day, log, true);
+            })
+        };
+    }
+
+    private static object MapDaySummary(DateTime date, DailyPrayerLog? log, bool countMissed)
+    {
+        var completed = log?.PrayerEntries.Count(e => e.Status == PrayerStatus.Completed) ?? 0;
+        var expected = countMissed ? DefaultPrayers.Length : 0;
+        var missed = Math.Max(0, expected - completed);
+
+        return new
+        {
+            Date = date,
+            ExpectedCount = expected,
+            CompletedCount = completed,
+            MissedCount = missed,
+            IsComplete = expected > 0 && completed == expected,
+            HasLog = log is not null
+        };
+    }
+
+    private static PrayerStatus EffectiveStatus(PrayerEntry entry, DateTime logDate)
+    {
+        if (entry.Status == PrayerStatus.Pending && logDate < DateTime.UtcNow.Date)
+            return PrayerStatus.Missed;
+
+        return entry.Status;
+    }
+
+    private static (DateTime Start, DateTime End) GetPeriod(string period, DateTime anchor)
+    {
+        return period.ToLowerInvariant() switch
+        {
+            "day" => (anchor, anchor),
+            "month" => (new DateTime(anchor.Year, anchor.Month, 1), new DateTime(anchor.Year, anchor.Month, 1).AddMonths(1).AddDays(-1)),
+            _ => (anchor.AddDays(-(int)anchor.DayOfWeek), anchor.AddDays(6 - (int)anchor.DayOfWeek))
+        };
+    }
+
+    private static IEnumerable<DateTime> EachDay(DateTime start, DateTime end)
+    {
+        if (start > end) yield break;
+
+        for (var day = start.Date; day <= end.Date; day = day.AddDays(1))
+            yield return day;
+    }
 }

@@ -122,6 +122,7 @@ using (var scope = app.Services.CreateScope())
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.EnsureCreatedAsync();
+        await SeedAdminAsync(scope.ServiceProvider, app.Configuration, app.Environment);
         Console.WriteLine("Database schema check completed.");
     }
     catch (Exception ex)
@@ -156,4 +157,81 @@ static string? NormalizePostgresUrl(string? databaseUrl)
     var database = uri.AbsolutePath.TrimStart('/');
 
     return $"Host={uri.Host};Port={uri.Port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+}
+
+static async Task SeedAdminAsync(IServiceProvider services, IConfiguration configuration, IWebHostEnvironment environment)
+{
+    const string adminRole = "Admin";
+
+    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+
+    if (!await roleManager.RoleExistsAsync(adminRole))
+        await roleManager.CreateAsync(new IdentityRole(adminRole));
+
+    var email = configuration["Admin:Email"];
+    var password = configuration["Admin:Password"];
+
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+    {
+        if (!environment.IsDevelopment())
+        {
+            Console.WriteLine("Admin account was not seeded. Set Admin__Email and Admin__Password environment variables.");
+            return;
+        }
+
+        email = "admin@imaantracker.local";
+        password = "Admin@12345";
+    }
+
+    var admin = await userManager.FindByEmailAsync(email);
+    if (admin is null)
+    {
+        admin = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            EmailConfirmed = true,
+            FullName = "Imaan Tracker Admin",
+            City = "Admin",
+            Country = "Admin",
+            PhoneNumber = ""
+        };
+
+        var createResult = await userManager.CreateAsync(admin, password);
+        if (!createResult.Succeeded)
+        {
+            Console.Error.WriteLine("Admin account could not be created: "
+                + string.Join("; ", createResult.Errors.Select(e => e.Description)));
+            return;
+        }
+    }
+    else
+    {
+        admin.UserName = email;
+        admin.Email = email;
+        admin.EmailConfirmed = true;
+
+        var updateResult = await userManager.UpdateAsync(admin);
+        if (!updateResult.Succeeded)
+        {
+            Console.Error.WriteLine("Admin account could not be updated: "
+                + string.Join("; ", updateResult.Errors.Select(e => e.Description)));
+            return;
+        }
+
+        var resetToken = await userManager.GeneratePasswordResetTokenAsync(admin);
+        var resetResult = await userManager.ResetPasswordAsync(admin, resetToken, password);
+        if (!resetResult.Succeeded)
+        {
+            Console.Error.WriteLine("Admin password could not be updated: "
+                + string.Join("; ", resetResult.Errors.Select(e => e.Description)));
+            return;
+        }
+    }
+
+    if (!await userManager.IsInRoleAsync(admin, adminRole))
+        await userManager.AddToRoleAsync(admin, adminRole);
+
+    Console.WriteLine($"Admin account ready: {email}");
 }

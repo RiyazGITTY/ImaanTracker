@@ -20,7 +20,9 @@ public record AuthResponseDto(
     string UserId,
     string FullName,
     string Email,
-    DateTime ExpiresAt
+    DateTime ExpiresAt,
+    bool IsAdmin,
+    string[] Roles
 );
 
 public record CompletePrayerDto(string PrayerName);

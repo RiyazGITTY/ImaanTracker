@@ -30,7 +30,10 @@
             </button>
           </span>
         </label>
-        <button class="primary" type="submit">Login</button>
+        <button class="primary" type="submit">
+          <span class="button-text">Login</span>
+          <span class="loader" aria-hidden="true"></span>
+        </button>
       </form>
 
       <form id="signupForm" class="form hidden">
@@ -69,17 +72,22 @@
     <section id="prayerPanel" class="panel hidden">
       <div class="topbar">
         <div>
-          <p class="eyebrow">Today</p>
+          <button id="dateCard" class="date-card" type="button" aria-label="Show Arabic calendar date">
+            <strong id="dateCardValue"></strong>
+          </button>
           <p id="salaamText" class="salaam">Assalamu Alaikum,</p>
           <h2>Prayer checklist</h2>
         </div>
-        <button id="logoutButton" class="ghost logout-icon" type="button" aria-label="Logout" title="Logout">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M10 17l5-5-5-5"/>
-            <path d="M15 12H3"/>
-            <path d="M21 19V5"/>
-          </svg>
-        </button>
+        <div class="top-actions">
+          <button id="adminButton" class="ghost admin-button hidden" type="button">Admin</button>
+          <button id="logoutButton" class="ghost logout-icon" type="button" aria-label="Logout" title="Logout">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 17l5-5-5-5"/>
+              <path d="M15 12H3"/>
+              <path d="M21 19V5"/>
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div class="progress">
@@ -90,8 +98,52 @@
         <div id="progressCircle">0%</div>
       </div>
 
+      <div class="history-tools">
+        <div class="period-tabs" role="tablist" aria-label="Prayer summary period">
+          <button class="period-tab active" type="button" data-period="day">Day</button>
+          <button class="period-tab" type="button" data-period="week">Week</button>
+          <button class="period-tab" type="button" data-period="month">Month</button>
+        </div>
+        <div id="prayerStats" class="prayer-stats"></div>
+      </div>
+
+      <div class="calendar-panel">
+        <div class="calendar-head">
+          <button id="previousMonthButton" class="ghost calendar-nav" type="button" aria-label="Previous month">&lt;</button>
+          <strong id="calendarTitle"></strong>
+          <button id="nextMonthButton" class="ghost calendar-nav" type="button" aria-label="Next month">&gt;</button>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+        </div>
+        <div id="calendarGrid" class="calendar-grid"></div>
+      </div>
+
       <div id="prayerList" class="prayer-list"></div>
       <p id="prayerMessage" class="message"></p>
+    </section>
+
+    <section id="adminPanel" class="panel admin-panel hidden">
+      <div class="topbar">
+        <div>
+          <p class="salaam">Admin dashboard</p>
+          <h2>Manage users</h2>
+        </div>
+        <div class="top-actions">
+          <button id="backToPrayersButton" class="ghost admin-button" type="button">Prayers</button>
+          <button id="adminLogoutButton" class="ghost logout-icon" type="button" aria-label="Logout" title="Logout">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M10 17l5-5-5-5"/>
+              <path d="M15 12H3"/>
+              <path d="M21 19V5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div id="adminSummary" class="admin-summary"></div>
+      <div id="adminUsers" class="admin-users"></div>
+      <p id="adminMessage" class="message"></p>
     </section>
   </main>
 
