@@ -36,6 +36,7 @@ const adminLogoutButton = document.querySelector("#adminLogoutButton");
 const adminButton = document.querySelector("#adminButton");
 const backToPrayersButton = document.querySelector("#backToPrayersButton");
 const signupButton = document.querySelector("#signupButton");
+const loginButton = loginForm.querySelector("button[type='submit']");
 const salaamText = document.querySelector("#salaamText");
 const toast = document.querySelector("#toast");
 const dateCard = document.querySelector("#dateCard");
@@ -136,35 +137,41 @@ async function signup(event) {
 async function login(event) {
   event.preventDefault();
   setAuthMessage("");
+  setLoginLoading(true);
 
-  const response = await request("/Auth/login", {
-    method: "POST",
-    body: {
-      email: value("#loginEmail"),
-      password: value("#loginPassword")
+  let response;
+  try {
+    response = await request("/Auth/login", {
+      method: "POST",
+      body: {
+        email: value("#loginEmail"),
+        password: value("#loginPassword")
+      }
+    });
+
+    if (!response.ok) {
+      setAuthMessage("Invalid email or password.");
+      return;
     }
-  });
 
-  if (!response.ok) {
-    setAuthMessage("Invalid email or password.");
-    return;
-  }
+    const data = await response.json();
+    state.token = data.token;
+    state.userId = data.userId || "";
+    state.userName = data.fullName || value("#loginEmail");
+    state.isAdmin = Boolean(data.isAdmin || data.roles?.includes("Admin"));
+    localStorage.setItem("imaan_token", state.token);
+    localStorage.setItem("imaan_user_id", state.userId);
+    localStorage.setItem("imaan_user_name", state.userName);
+    localStorage.setItem("imaan_is_admin", String(state.isAdmin));
 
-  const data = await response.json();
-  state.token = data.token;
-  state.userId = data.userId || "";
-  state.userName = data.fullName || value("#loginEmail");
-  state.isAdmin = Boolean(data.isAdmin || data.roles?.includes("Admin"));
-  localStorage.setItem("imaan_token", state.token);
-  localStorage.setItem("imaan_user_id", state.userId);
-  localStorage.setItem("imaan_user_name", state.userName);
-  localStorage.setItem("imaan_is_admin", String(state.isAdmin));
-
-  if (state.isAdmin) {
-    showAdminPanel();
-  } else {
-    showPrayerPanel();
-    await loadPrayerDashboard();
+    if (state.isAdmin) {
+      showAdminPanel();
+    } else {
+      showPrayerPanel();
+      await loadPrayerDashboard();
+    }
+  } finally {
+    setLoginLoading(false);
   }
 }
 
@@ -684,6 +691,11 @@ function togglePassword(button) {
   input.type = isPassword ? "text" : "password";
   button.classList.toggle("active", isPassword);
   button.setAttribute("aria-label", isPassword ? "Hide password" : "Show password");
+}
+
+function setLoginLoading(isLoading) {
+  loginButton.disabled = isLoading;
+  loginButton.classList.toggle("loading", isLoading);
 }
 
 function setSignupLoading(isLoading) {
