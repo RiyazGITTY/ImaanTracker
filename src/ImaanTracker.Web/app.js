@@ -36,7 +36,7 @@ const adminLogoutButton = document.querySelector("#adminLogoutButton");
 const adminButton = document.querySelector("#adminButton");
 const backToPrayersButton = document.querySelector("#backToPrayersButton");
 const signupButton = document.querySelector("#signupButton");
-const loginButton = loginForm.querySelector("button[type='submit']");
+const loginButton = document.querySelector("#loginButton") || loginForm.querySelector("button[type='submit']");
 const salaamText = document.querySelector("#salaamText");
 const toast = document.querySelector("#toast");
 const dateCard = document.querySelector("#dateCard");
@@ -694,6 +694,7 @@ function togglePassword(button) {
 }
 
 function setLoginLoading(isLoading) {
+  if (!loginButton) return;
   loginButton.disabled = isLoading;
   loginButton.classList.toggle("loading", isLoading);
 }
