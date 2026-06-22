@@ -285,8 +285,17 @@ function renderToday(today) {
 
     const button = document.createElement("button");
     button.type = "button";
-    button.disabled = prayer.completed || !isToday;
-    button.textContent = prayer.completed ? "Completed" : (isToday ? "Mark complete" : prayer.status);
+    
+    // Check if date is today or yesterday
+    const currentDate = new Date();
+    const yesterday = new Date(currentDate);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const todayKey = toDateKey(currentDate);
+    const yesterdayKey = toDateKey(yesterday);
+    const isAllowedDate = selectedDate === todayKey || selectedDate === yesterdayKey;
+    
+    button.disabled = prayer.completed || !isAllowedDate;
+    button.textContent = prayer.completed ? "Completed" : (isAllowedDate ? "Mark complete" : prayer.status);
     button.addEventListener("click", () => completePrayer(prayer.prayerName));
 
     row.append(info, button);
@@ -351,6 +360,19 @@ function renderCalendar(calendar) {
 }
 
 async function selectCalendarDate(dateKey) {
+  // Only allow selecting today and yesterday
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const todayKey = toDateKey(today);
+  const yesterdayKey = toDateKey(yesterday);
+  
+  if (dateKey !== todayKey && dateKey !== yesterdayKey) {
+    setPrayerMessage("You can only mark prayers for today and yesterday.");
+    return;
+  }
+  
   selectedDate = dateKey;
   await Promise.all([
     loadPrayerDate(dateKey),

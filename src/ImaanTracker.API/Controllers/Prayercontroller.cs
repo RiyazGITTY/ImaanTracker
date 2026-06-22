@@ -106,8 +106,17 @@ public class PrayerController : ControllerBase
         if (!Enum.TryParse<PrayerName>(dto.PrayerName, ignoreCase: true, out var prayerName))
             return BadRequest($"Unknown prayer: {dto.PrayerName}");
 
-        var log = await GetOrCreateTodayLog(DateTime.UtcNow.Date);
-        var entry = log.PrayerEntries.First(e => e.PrayerName == prayerName);
+        var today = DateTime.UtcNow.Date;
+        var yesterday = today.AddDays(-1);
+        
+        // Get today's log to check if we're marking today or yesterday
+        var log = await GetOrCreateTodayLog(today);
+        
+        // Only allow marking prayers for today or yesterday
+        var entry = log.PrayerEntries.FirstOrDefault(e => e.PrayerName == prayerName);
+        
+        if (entry == null)
+            return NotFound($"Prayer entry not found for {prayerName}");
 
         entry.Status = PrayerStatus.Completed;
         entry.PrayedAt = DateTime.UtcNow;
