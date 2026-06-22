@@ -41,6 +41,7 @@ const salaamText = document.querySelector("#salaamText");
 const toast = document.querySelector("#toast");
 const dateCard = document.querySelector("#dateCard");
 const dateCardValue = document.querySelector("#dateCardValue");
+const prayerDateInput = document.querySelector("#prayerDateInput");
 
 let showingHijriDate = false;
 let selectedDate = toDateKey(new Date());
@@ -68,6 +69,21 @@ periodTabs.forEach(button => {
 previousMonthButton.addEventListener("click", () => changeCalendarMonth(-1));
 nextMonthButton.addEventListener("click", () => changeCalendarMonth(1));
 dateCard.addEventListener("click", toggleDateCard);
+if (prayerDateInput) {
+  prayerDateInput.addEventListener("change", async (e) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    const selectedDateStr = e.target.value === "today" ? toDateKey(today) : toDateKey(yesterday);
+    selectedDate = selectedDateStr;
+    await Promise.all([
+      loadPrayerDate(selectedDateStr),
+      loadPrayerStats(),
+      loadCalendar()
+    ]);
+  });
+}
 renderDateCard();
 
 if (state.token) {
